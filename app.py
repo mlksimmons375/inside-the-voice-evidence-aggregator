@@ -115,7 +115,7 @@ def episode(name):
     if data is None:
         abort(404)
     curation = _load_json(base / "curation.json") or {}
-    cards = _build_cards(data)
+    cards = _build_cards(data, base)
     # attach curation state
     for c in cards:
         state = curation.get(c["id"], {})
@@ -151,7 +151,7 @@ def export(name):
     if data is None:
         abort(404)
     curation = _load_json(base / "curation.json") or {}
-    cards = _build_cards(data)
+    cards = _build_cards(data, base)
     by_id = {c["id"]: c for c in cards}
 
     lines = [f"# Curated Evidence - Episode {data.get('episode')}: {data.get('topic')}", ""]
@@ -192,11 +192,13 @@ def _list_episodes():
         if (d / "evidence_data.json").exists():
             data = _load_json(d / "evidence_data.json") or {}
             s = data.get("sources", {})
+            counts = {k: len(v) for k, v in s.items()}
+            counts["transcripts"] = sum(1 for c in s.get("clips", []) if c.get("has_transcript"))
             out.append({
                 "name": d.name,
                 "topic": data.get("topic", ""),
                 "generated": data.get("generated", ""),
-                "counts": {k: len(v) for k, v in s.items()},
+                "counts": counts,
             })
     return out
 
@@ -216,8 +218,10 @@ def _load_json(path):
         return None
 
 
-def _build_cards(data):
-    """Flatten every source's items into uniform display cards with stable ids."""
+def _build_cards(data, base=None):
+    """Flatten every source's items into uniform display cards with stable ids.
+    If `base` is given, clip cards load their transcript text so the coach's
+    actual words show up in the card (that's the point of pulling them)."""
     cards = []
     s = data.get("sources", {})
 
@@ -238,10 +242,19 @@ def _build_cards(data):
 
     for i, c in enumerate(s.get("clips", [])):
         sub = c.get("query", "")
-        if c.get("has_transcript"):
-            sub += " - transcript saved"
-        cards.append(_card("clips", i, c.get("title", ""), sub,
-                           c.get("description", ""), c.get("url", "")))
+        body = c.get("description", "")
+        tf = c.get("transcript_file")
+        if c.get("has_transcript") and tf and base is not None:
+            sub += " - has transcript"
+            try:
+                raw = (base / "Clips" / "transcripts" / tf).read_text(
+                    encoding="utf-8", errors="ignore")
+                parts = raw.split("=" * 80, 1)          # strip the file header
+                txt = (parts[1] if len(parts) > 1 else raw).strip()
+                body = "TRANSCRIPT:\n" + txt[:6000]
+            except Exception:
+                pass
+        cards.append(_card("clips", i, c.get("title", ""), sub, body, c.get("url", "")))
 
     for i, a in enumerate(s.get("articles", [])):
         cards.append(_card("articles", i, a.get("title", ""),
