@@ -201,10 +201,27 @@ class EvidenceAggregator:
                 pass
 
     # -- orchestration ------------------------------------------------------
+    def _load_existing(self):
+        """Merge in previously gathered sources so gathering one source in a
+        later run doesn't wipe sources gathered earlier. Sources actually run
+        this time overwrite their own key afterward; the rest are preserved."""
+        path = self.base_dir / "evidence_data.json"
+        if not path.exists():
+            return
+        try:
+            prev = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return
+        for key, items in prev.get("sources", {}).items():
+            if key in self.results["sources"] and items and not self.results["sources"][key]:
+                self.results["sources"][key] = items
+
     def run(self, sources, progress=None):
         """Run the requested sources in the correct order, fail-soft, then
         write the report. `sources` is an iterable of names from SOURCE_ORDER."""
         self._progress = progress
+        self._load_existing()   # keep evidence from earlier runs of this episode
+        preload = {k: list(v) for k, v in self.results["sources"].items()}
         dispatch = {
             "reddit": self.search_reddit,
             "youtube": self.search_youtube_comments,
@@ -222,6 +239,11 @@ class EvidenceAggregator:
                 dispatch[s]()
             except Exception as e:  # never let one source kill the run
                 self._log(f"[{s}] crashed and was skipped: {str(e)[:150]}")
+        # a transient empty result must never wipe previously-gathered data
+        for k, prev in preload.items():
+            if prev and not self.results["sources"][k]:
+                self.results["sources"][k] = prev
+                self._log(f"[{k}] empty this run; kept {len(prev)} from a prior run.")
         self.generate_report()
         self._progress = None
         return self.results
