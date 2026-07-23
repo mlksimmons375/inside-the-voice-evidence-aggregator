@@ -1,0 +1,134 @@
+===============================================================================
+                   EVIDENCE AGGREGATOR - QUICK START GUIDE
+===============================================================================
+
+ONE-GLANCE WORKFLOW:
+--------------------
+AUTOMATED (2 min):
+  1. Run tool -> Get YouTube comments, video clips, research papers
+
+MANUAL (60 min):
+  2. Articles/Forums -> Print to PDF, upload to LLM for quotes
+  3. Transcripts -> Downsub.com (free, one-by-one)
+
+ORGANIZE (10 min):
+  4. Screenshot/save chosen evidence
+
+Total: ~70 min per episode
+
+===============================================================================
+                         AUTOMATED STEP - RUN THE TOOL
+===============================================================================
+
+OPEN CMD AND NAVIGATE:
+cd "C:\Users\msimmons\OneDrive - The Restored Church of God\Documents\Better Vocals\Inside The Voice\Evidence Aggregator"
+
+SET API KEY:
+set_keys.bat
+
+RUN TOOL:
+python evidence_aggregator.py --episode 1 --topic breath --youtube --clips --scholar
+
+CHANGE:
+  - --episode 1 -> Your episode number
+  - --topic breath -> Your topic (breath, high-notes, tension)
+
+Built-in topics: breath, high-notes, tension
+New topic? Ask Claude to add 7 search variations first
+
+Wait 2-3 minutes. Tool shows progress with checkmarks.
+
+===============================================================================
+                         WHAT YOU GET (AUTOMATED)
+===============================================================================
+
+episodes/Episode_01_breath/
+├── Evidence/
+│   └── youtube_comments.txt        -> 700+ comments
+├── Clips/
+│   ├── found_clips.txt            -> 115 videos
+│   └── transcript_urls.txt        -> URLs for Downsub
+├── Research/
+│   └── research_papers.txt        -> 10 papers
+└── evidence_report.md             -> Summary
+
+===============================================================================
+                   MANUAL STEP 1 - ARTICLES & FORUMS (15 min)
+===============================================================================
+
+GET ARTICLES:
+1. Google search: "breath control singing"
+2. Open top 5-10 articles
+3. Print to PDF (Ctrl+P -> Microsoft Print to PDF)
+4. Save all PDFs to: Episode_01_breath/Articles/
+
+GET REDDIT THREADS:
+1. Search r/singing: "breath control"
+2. Find 2-3 good threads
+3. Print to PDF
+4. Save to: Episode_01_breath/Forums/
+
+EXTRACT QUOTES:
+1. Upload all PDFs to Google NotebookLM or Claude
+2. Ask: "Find quotes showing: generic advice, conflicting advice, incomplete 
+   explanations"
+3. Copy quotes to: quotes.txt
+
+===============================================================================
+                   MANUAL STEP 2 - VIDEO TRANSCRIPTS (30 min)
+===============================================================================
+
+1. Open: Clips/transcript_urls.txt
+2. Pick your top 10 videos (based on titles in found_clips.txt)
+3. Go to: downsub.com
+4. Paste URL (one at a time)
+5. Click "Download" -> Get TXT file
+6. Save to: Clips/transcripts/
+7. Repeat for all 10 videos
+
+Time: ~3 min per video = 30 min total
+
+===============================================================================
+                      ORGANIZE YOUR EVIDENCE (10 min)
+===============================================================================
+
+CHOOSE YOUR TOP EVIDENCE:
+- 3 YouTube comments (failed solutions, contradictions, patterns)
+- 2-3 video clips (for demonstrations)
+- 5-10 article quotes (generic/conflicting advice)
+- 1-2 research papers (intellectual backing)
+
+SCREENSHOT COMMENTS:
+1. Open youtube_comments.txt
+2. Find your chosen comments
+3. Format in PowerPoint/text overlay
+4. Screenshot as PNG
+
+BOOKMARK CLIPS:
+- Copy URLs of chosen videos
+- Note timestamps from transcripts
+
+===============================================================================
+                         USE IN YOUR EPISODE
+===============================================================================
+
+EVIDENCE STACK (0:15-2:30):
+- Show 3 comment screenshots on screen
+
+MECHANISM REVEAL (2:30-5:00):
+- Reference research papers
+- Quote conflicting articles
+
+PATTERN EXAMPLES (5:00-7:30):
+- Show video clips
+
+STEELMAN (7:30-10:00):
+- Use article quotes showing when common advice works
+
+===============================================================================
+                          REPEAT FOR EACH EPISODE
+===============================================================================
+
+Same process, new topic. Gets faster after Episode 2-3.
+
+Keep this guide handy!

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evidence Aggregator - Inside the Voice</title>
+<style>
+  :root { --ink:#1a1a1a; --mut:#666; --line:#e3e3e3; --accent:#2b5ce6; --bg:#f7f7f8; }
+  * { box-sizing:border-box; }
+  body { font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+         color:var(--ink); background:var(--bg); margin:0; padding:32px; }
+  .wrap { max-width:860px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--mut); margin:0 0 28px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px;
+          padding:20px 22px; margin-bottom:22px; }
+  h2 { font-size:15px; text-transform:uppercase; letter-spacing:.04em;
+       color:var(--mut); margin:0 0 16px; }
+  label { display:block; font-weight:600; margin:14px 0 5px; }
+  input[type=text], input[type=number], textarea {
+      width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:7px;
+      font:inherit; }
+  textarea { min-height:74px; resize:vertical; }
+  .row { display:flex; gap:16px; }
+  .row > div { flex:1; }
+  .srcs { display:flex; flex-wrap:wrap; gap:10px 20px; margin-top:6px; }
+  .srcs label { font-weight:400; display:flex; align-items:center; gap:7px; margin:0; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:7px;
+           padding:11px 22px; font:inherit; font-weight:600; cursor:pointer; margin-top:18px; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .ep { display:flex; justify-content:space-between; align-items:center;
+        padding:11px 0; border-bottom:1px solid var(--line); }
+  .ep:last-child { border-bottom:0; }
+  .ep a { color:var(--accent); text-decoration:none; font-weight:600; }
+  .ep .meta { color:var(--mut); font-size:13px; }
+  .empty { color:var(--mut); }
+  #log { background:#0e1117; color:#c9d1d9; font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;
+         border-radius:8px; padding:14px; height:260px; overflow:auto; white-space:pre-wrap;
+         margin-top:12px; display:none; }
+  .note { font-size:13px; color:var(--mut); margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Evidence Aggregator</h1>
+  <p class="sub">Inside the Voice &middot; gather raw evidence, then curate it into the three claims.</p>
+
+  <div class="card">
+    <h2>Gather a new episode</h2>
+    <form method="post" action="/run" id="gatherForm">
+      <div class="row">
+        <div>
+          <label for="episode">Episode #</label>
+          <input type="number" id="episode" name="episode" value="1" min="1">
+        </div>
+        <div>
+          <label for="topic">Topic</label>
+          <input type="text" id="topic" name="topic" list="topics"
+                 placeholder="warmup" value="warmup">
+          <datalist id="topics">
+            {% for t in topics %}<option value="{{ t }}">{% endfor %}
+          </datalist>
+        </div>
+      </div>
+
+      <label for="queries">Custom search queries (optional, one per line)</label>
+      <textarea id="queries" name="queries"
+        placeholder="Leave blank to use the built-in queries for a known topic."></textarea>
+      <p class="note">Known topics ({{ topics|join(', ') }}) have 7 built-in queries.
+        A new topic falls back to one query unless you list your own here.</p>
+
+      <label>Sources</label>
+      <div class="srcs">
+        {% for s in sources %}
+          <label><input type="checkbox" name="src_{{ s }}" checked> {{ s }}</label>
+        {% endfor %}
+      </div>
+      <p class="note">reddit &amp; youtube/clips need API keys (see SETUP.md).
+        transcripts runs after clips. articles &amp; scholar need no key.</p>
+
+      <button type="submit" id="goBtn" {% if running %}disabled{% endif %}>
+        {% if running %}Gathering…{% endif %}{% if not running %}Gather evidence{% endif %}
+      </button>
+    </form>
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <h2>Existing episodes</h2>
+    {% if episodes %}
+      {% for e in episodes %}
+        <div class="ep">
+          <div>
+            <a href="/episode/{{ e.name }}">{{ e.name }}</a>
+            <div class="meta">
+              {{ e.counts.reddit or 0 }} reddit &middot;
+              {{ e.counts.youtube_comments or 0 }} comments &middot;
+              {{ e.counts.clips or 0 }} clips &middot;
+              {{ e.counts.articles or 0 }} articles &middot;
+              {{ e.counts.research or 0 }} papers
+            </div>
+          </div>
+          <div class="meta">{{ e.generated[:16] }}</div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="empty">No episodes gathered yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+const logBox = document.getElementById('log');
+const goBtn = document.getElementById('goBtn');
+let polling = {{ 'true' if running else 'false' }};
+
+async function poll() {
+  const r = await fetch('/status');
+  const s = await r.json();
+  if (s.running || s.log.length) {
+    logBox.style.display = 'block';
+    logBox.textContent = s.log.join('\n');
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+  if (s.running) {
+    goBtn.disabled = true; goBtn.textContent = 'Gathering…';
+    setTimeout(poll, 1200);
+  } else if (s.done) {
+    goBtn.disabled = false; goBtn.textContent = 'Gather evidence';
+    if (s.episode) {
+      logBox.textContent += `\n\n--- Done. Open: /episode/${s.episode} ---`;
+      logBox.scrollTop = logBox.scrollHeight;
+      // refresh the episode list after a short beat
+      setTimeout(() => window.location.reload(), 1500);
+    }
+  }
+}
+if (polling) poll();
+document.getElementById('gatherForm').addEventListener('submit', () => {
+  setTimeout(poll, 800);
+});
+</script>
+</body>
+</html>

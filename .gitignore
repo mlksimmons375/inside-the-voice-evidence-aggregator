@@ -1,0 +1,10 @@
+# never publish gathered data or secrets
+episodes/
+_archive/
+__pycache__/
+*.pyc
+set_keys.bat
+*.env
+.env
+*Zone.Identifier
+dir

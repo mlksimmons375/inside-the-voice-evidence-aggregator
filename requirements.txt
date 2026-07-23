@@ -1,0 +1,12 @@
+# Evidence Aggregator v3.0 dependencies
+# Install:  pip install -r requirements.txt
+
+praw                        # Reddit
+google-api-python-client    # YouTube Data API (comments + clips)
+youtube-transcript-api      # transcripts (primary)
+yt-dlp                      # transcripts (fallback)
+requests                    # HTTP
+beautifulsoup4              # article parsing
+lxml                        # faster HTML parser for bs4
+scholarly                   # Google Scholar
+flask                       # local web app (app.py)

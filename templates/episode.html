@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ name }} - curate</title>
+<style>
+  :root { --ink:#1a1a1a; --mut:#666; --line:#e3e3e3; --bg:#f7f7f8;
+          --c1:#0a7d3f; --c2:#c47f00; --c3:#2b5ce6; --cut:#b23b3b; }
+  * { box-sizing:border-box; }
+  body { font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+         color:var(--ink); background:var(--bg); margin:0; padding:0 0 60px; }
+  header { position:sticky; top:0; background:#fff; border-bottom:1px solid var(--line);
+           padding:14px 24px; z-index:5; }
+  .hwrap { max-width:960px; margin:0 auto; display:flex; align-items:center;
+           justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  h1 { font-size:18px; margin:0; }
+  h1 small { color:var(--mut); font-weight:400; font-size:13px; }
+  .tally { display:flex; gap:14px; font-size:13px; color:var(--mut); }
+  .tally b { color:var(--ink); }
+  .wrap { max-width:960px; margin:24px auto; padding:0 24px; }
+  a.back { color:var(--mut); text-decoration:none; font-size:13px; }
+  .grp { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut);
+         margin:26px 0 10px; }
+  .item { background:#fff; border:1px solid var(--line); border-radius:10px;
+          padding:15px 17px; margin-bottom:12px; }
+  .item.assigned { border-left:4px solid var(--line); }
+  .item[data-claim="1"] { border-left-color:var(--c1); }
+  .item[data-claim="2"] { border-left-color:var(--c2); }
+  .item[data-claim="3"] { border-left-color:var(--c3); }
+  .item[data-claim="cut"] { opacity:.5; border-left-color:var(--cut); }
+  .ttl { font-weight:600; }
+  .st { color:var(--mut); font-size:13px; margin:2px 0 8px; }
+  .body { font-size:14px; white-space:pre-wrap; color:#333;
+          max-height:120px; overflow:auto; background:var(--bg);
+          border-radius:6px; padding:8px 10px; }
+  .body:empty { display:none; }
+  .u { display:inline-block; margin:8px 0; font-size:13px; color:var(--c3);
+       text-decoration:none; word-break:break-all; }
+  .btns { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .btns button { border:1px solid var(--line); background:#fff; border-radius:6px;
+                 padding:5px 11px; font:13px inherit; cursor:pointer; }
+  .btns button.c1.on { background:var(--c1); color:#fff; border-color:var(--c1); }
+  .btns button.c2.on { background:var(--c2); color:#fff; border-color:var(--c2); }
+  .btns button.c3.on { background:var(--c3); color:#fff; border-color:var(--c3); }
+  .btns button.cut.on { background:var(--cut); color:#fff; border-color:var(--cut); }
+  .note-in { width:100%; margin-top:8px; padding:6px 9px; border:1px solid var(--line);
+             border-radius:6px; font:13px inherit; }
+  .export { background:#111; color:#fff; border:0; border-radius:7px; padding:9px 16px;
+            font:inherit; font-weight:600; cursor:pointer; }
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <div>
+      <a class="back" href="/">&larr; all episodes</a>
+      <h1>{{ name }} <small>{{ data.topic }}</small></h1>
+    </div>
+    <div class="tally">
+      <span>C1 <b id="t1">{{ counts['1'] }}</b></span>
+      <span>C2 <b id="t2">{{ counts['2'] }}</b></span>
+      <span>C3 <b id="t3">{{ counts['3'] }}</b></span>
+      <span>cut <b id="tcut">{{ counts['cut'] }}</b></span>
+      <form method="post" action="/export/{{ name }}" style="margin:0">
+        <button class="export" type="submit">Export curated .md</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <p style="color:var(--mut);font-size:13.5px;margin-top:0">
+    Tag each piece to the claim it supports, or Cut it. Claim 1 = the problem exists ·
+    Claim 2 = it's incomplete · Claim 3 = the real answer. Saves automatically.
+  </p>
+
+  {% set sources = [('reddit','Reddit'),('youtube','YouTube comments'),('clips','Clips'),
+                    ('articles','Articles'),('research','Research papers')] %}
+  {% for skey, slabel in sources %}
+    {% set group = cards | selectattr('source','equalto',skey) | list %}
+    {% if group %}
+      <div class="grp">{{ slabel }} ({{ group|length }})</div>
+      {% for c in group %}
+        <div class="item {% if c.claim %}assigned{% endif %}"
+             data-id="{{ c.id }}" data-claim="{{ c.claim }}">
+          <div class="ttl">{{ c.title }}</div>
+          {% if c.subtitle %}<div class="st">{{ c.subtitle }}</div>{% endif %}
+          {% if c.body %}<div class="body">{{ c.body }}</div>{% endif %}
+          {% if c.url %}<a class="u" href="{{ c.url }}" target="_blank" rel="noopener">{{ c.url }}</a>{% endif %}
+          <div class="btns">
+            <button class="c1"  onclick="setClaim(this,'1')">Claim 1</button>
+            <button class="c2"  onclick="setClaim(this,'2')">Claim 2</button>
+            <button class="c3"  onclick="setClaim(this,'3')">Claim 3</button>
+            <button class="cut" onclick="setClaim(this,'cut')">Cut</button>
+          </div>
+          <input class="note-in" placeholder="note (optional)"
+                 value="{{ c.note }}" onchange="setNote(this)">
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+</div>
+
+<script>
+const EP = "{{ name }}";
+
+function paint(item) {
+  const claim = item.dataset.claim;
+  item.classList.toggle('assigned', !!claim);
+  item.querySelectorAll('.btns button').forEach(b => b.classList.remove('on'));
+  const map = {'1':'.c1','2':'.c2','3':'.c3','cut':'.cut'};
+  if (map[claim]) item.querySelector(map[claim]).classList.add('on');
+}
+function tally() {
+  const cnt = {'1':0,'2':0,'3':0,'cut':0};
+  document.querySelectorAll('.item').forEach(i => {
+    if (cnt[i.dataset.claim] !== undefined) cnt[i.dataset.claim]++;
+  });
+  t1.textContent=cnt['1']; t2.textContent=cnt['2']; t3.textContent=cnt['3']; tcut.textContent=cnt['cut'];
+}
+async function save(id, patch) {
+  await fetch('/curate', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(Object.assign({episode:EP, id}, patch))});
+}
+function setClaim(btn, claim) {
+  const item = btn.closest('.item');
+  if (item.dataset.claim === claim) claim = '';   // click again to unset
+  item.dataset.claim = claim;
+  paint(item); tally();
+  save(item.dataset.id, {claim});
+}
+function setNote(input) {
+  const item = input.closest('.item');
+  save(item.dataset.id, {note: input.value});
+}
+document.querySelectorAll('.item').forEach(paint);
+</script>
+</body>
+</html>
